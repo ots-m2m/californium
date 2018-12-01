@@ -430,7 +430,7 @@ public class ConnectorHelper {
 		@Override
 		public void handleData(InetSocketAddress endpoint, byte[] data) {
 			try {
-				records.put(Record.fromByteArray(data, endpoint));
+				records.put(Record.fromByteArray(data, endpoint, null));
 			} catch (InterruptedException e) {
 			}
 		}
