@@ -48,6 +48,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.californium.elements.AddressEndpointContext;
@@ -133,7 +134,7 @@ public class ConnectorHelper {
 	public void startServer(DtlsConnectorConfig.Builder builder) throws IOException, GeneralSecurityException {
 
 		serverSessionCache = new InMemorySessionCache();
-		serverConnectionStore = new InMemoryConnectionStore(SERVER_CONNECTION_STORE_CAPACITY, 5 * 60, serverSessionCache); // connection timeout 5mins
+		serverConnectionStore = new InMemoryConnectionStore(null, SERVER_CONNECTION_STORE_CAPACITY, 5 * 60, serverSessionCache); // connection timeout 5mins
 		serverConnectionStore.setTag("server");
 
 		InMemoryPskStore pskStore = new InMemoryPskStore();
@@ -152,6 +153,7 @@ public class ConnectorHelper {
 				.setMaxTransmissionUnit(1024)
 				.setReceiverThreadCount(1)
 				.setConnectionThreadCount(2)
+				.setLoggingTag("server")
 				.setServerOnly(true);
 
 		if (!Boolean.FALSE.equals(builder.getIncompleteConfig().isClientAuthenticationRequired()) ||
@@ -192,12 +194,27 @@ public class ConnectorHelper {
 		server.setAlertHandler(null);
 	}
 
+	/**
+	 * Remove connect from server side connection store.
+	 * 
+	 * @param client address of client
+	 * @param removeFromSessionCache {@code true} remove from session cache
+	 *            also.
+	 */
+	public void remove(InetSocketAddress client, boolean removeFromSessionCache) {
+		Connection connection = serverConnectionStore.get(client);
+		if (connection != null) {
+			serverConnectionStore.remove(connection, removeFromSessionCache);
+		}
+	}
+
 	static DtlsConnectorConfig newStandardClientConfig(final InetSocketAddress bindAddress) throws IOException, GeneralSecurityException {
 		return newStandardClientConfigBuilder(bindAddress).build();
 	}
 
 	static DtlsConnectorConfig.Builder newStandardClientConfigBuilder(final InetSocketAddress bindAddress) throws IOException, GeneralSecurityException {
 		return new DtlsConnectorConfig.Builder()
+				.setLoggingTag("client")
 				.setAddress(bindAddress)
 				.setReceiverThreadCount(1)
 				.setConnectionThreadCount(2)
@@ -310,13 +327,21 @@ public class ConnectorHelper {
 		RawData getLatestInboundMessage();
 
 		EndpointContext getClientEndpointContext();
+		
+		boolean quiet(long quietMillis, long timeoutMillis) throws InterruptedException;
 	}
 
 	static class MessageCapturingProcessor implements RawDataProcessor {
+		private volatile boolean quiet;
+		private AtomicLong time = new AtomicLong(System.nanoTime());
 		private AtomicReference<RawData> inboundMessage = new AtomicReference<RawData>();
 
 		@Override
 		public RawData process(RawData request) {
+			time.set(System.nanoTime());
+			if (quiet) {
+				return null;
+			}
 			inboundMessage.set(request);
 			return RawData.outbound("ACK".getBytes(), request.getEndpointContext(), null, false);
 		}
@@ -333,6 +358,35 @@ public class ConnectorHelper {
 		@Override
 		public RawData getLatestInboundMessage() {
 			return inboundMessage.get();
+		}
+
+		@Override
+		public boolean quiet(long quietMillis, long timeoutMillis) throws InterruptedException {
+			quiet = true;
+			try {
+				long quietNanos = TimeUnit.MILLISECONDS.toNanos(quietMillis);
+				long leftNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+				long endNanos = System.nanoTime() + leftNanos;
+				while (leftNanos > 0) {
+					long delta = System.nanoTime() - time.get();
+					if (delta > quietNanos) {
+						return true;
+					}
+					delta = quietNanos - delta;
+					if (leftNanos < delta) {
+						return false;
+					}
+					delta = TimeUnit.NANOSECONDS.toMillis(delta);
+					if (delta < 1) {
+						delta = 1;
+					}
+					Thread.sleep(delta);
+					leftNanos = endNanos - System.nanoTime();
+				}
+				return (System.nanoTime() - time.get()) > quietNanos;
+			} finally {
+				quiet = false;
+			}
 		}
 	}
 
@@ -359,8 +413,9 @@ public class ConnectorHelper {
 
 		@Override
 		public void handleData(InetSocketAddress endpoint, byte[] data) {
-			if (process(data))
+			if (process(data)) {
 				latch.countDown();
+			}
 		}
 
 		/**

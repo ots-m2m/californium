@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.californium.category.Small;
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.CoapHandler;
 import org.eclipse.californium.core.CoapResource;
@@ -37,6 +36,7 @@ import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.elements.Connector;
 import org.eclipse.californium.elements.UdpMulticastConnector;
+import org.eclipse.californium.elements.category.NativeDatagramSocketImplRequired;
 import org.eclipse.californium.rule.CoapNetworkRule;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,7 +44,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-@Category(Small.class)
+@Category(NativeDatagramSocketImplRequired.class)
 public class MulticastTest {
 	// DIRECT doesn't support multicast. Only execute, if test runs in NATIVE
 	@ClassRule
