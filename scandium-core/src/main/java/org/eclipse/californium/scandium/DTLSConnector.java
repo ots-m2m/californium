@@ -349,6 +349,14 @@ public class DTLSConnector implements Connector, RecordLayer {
 
 				@Override
 				public void handshakeFailed(Handshaker handshaker, Throwable error) {
+					List<RawData> listOut = handshaker.takeDeferredApplicationData();
+					if (!listOut.isEmpty()) {
+						LOGGER.debug("Handshake with [{}] failed, report error to deferred {} messages",
+								handshaker.getPeerAddress(), listOut.size());
+						for (RawData message : listOut) {
+							message.onError(error);
+						}
+					}
 					connectionStore.remove(handshaker.getConnection(), false);
 				}
 			};
@@ -1142,7 +1150,7 @@ public class DTLSConnector implements Connector, RecordLayer {
 					if (channel != null) {
 						// create application message.
 						DtlsEndpointContext context = session.getConnectionWriteContext();
-						LOGGER.info("{}received APPLICATION_DATA for {}", tag, context);
+						LOGGER.debug("{}received APPLICATION_DATA for {}", tag, context);
 						RawData receivedApplicationMessage = RawData.inbound(message.getData(), context, false);
 						channel.receiveData(receivedApplicationMessage);
 					}
@@ -1778,12 +1786,7 @@ public class DTLSConnector implements Connector, RecordLayer {
 				session.setVirtualHost(message.getEndpointContext().getVirtualHost());
 				// no session with peer established nor handshaker started yet,
 				// create new empty session & start handshake
-				handshaker = new ClientHandshaker(
-					session,
-					this,
-					connection,
-					config,
-					maximumTransmissionUnit);
+				handshaker = new ClientHandshaker(session, this, connection, config, maximumTransmissionUnit);
 				initializeHandshaker(handshaker);
 				handshaker.startHandshake();
 			}
@@ -1816,8 +1819,6 @@ public class DTLSConnector implements Connector, RecordLayer {
 				} else {
 					sessionId = connection.getSessionIdentity();
 				}
-				DTLSSession resumableSession = new DTLSSession(sessionId, peerAddress, ticket, 0);
-				resumableSession.setVirtualHost(message.getEndpointContext().getVirtualHost());
 				// terminate the previous connection and add the new one to the store
 				Connection newConnection = new Connection(peerAddress, connection.getExecutor());
 				connection.cancelPendingFlight();
@@ -1825,8 +1826,20 @@ public class DTLSConnector implements Connector, RecordLayer {
 					connectionStore.remove(connection, false);
 					connectionStore.put(newConnection);
 				}
-				Handshaker handshaker = new ResumingClientHandshaker(resumableSession, this,
-						newConnection, config, maximumTransmissionUnit);
+				Handshaker handshaker;
+				if (sessionId.isEmpty()) {
+					// server may use a empty session id to indicate,
+					// that resumption is not supported
+					// https://tools.ietf.org/html/rfc5246#section-7.4.1.3
+					DTLSSession newSession = new DTLSSession(peerAddress);
+					newSession.setVirtualHost(message.getEndpointContext().getVirtualHost());
+					handshaker = new ClientHandshaker(newSession, this, newConnection, config, maximumTransmissionUnit);
+				} else {
+					DTLSSession resumableSession = new DTLSSession(sessionId, peerAddress, ticket, 0);
+					resumableSession.setVirtualHost(message.getEndpointContext().getVirtualHost());
+					handshaker = new ResumingClientHandshaker(resumableSession, this, newConnection, config,
+							maximumTransmissionUnit);
+				}
 				initializeHandshaker(handshaker);
 				Handshaker previous = connection.getOngoingHandshake();
 				if (previous != null) {

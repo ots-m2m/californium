@@ -66,8 +66,7 @@ public class DTLSConnectorStartStopTest {
 	public static final Logger LOGGER = LoggerFactory.getLogger(DTLSConnectorStartStopTest.class.getName());
 
 	@ClassRule
-	public static DtlsNetworkRule network = new DtlsNetworkRule(DtlsNetworkRule.Mode.DIRECT,
-			DtlsNetworkRule.Mode.NATIVE);
+	public static DtlsNetworkRule network = new DtlsNetworkRule(DtlsNetworkRule.Mode.DIRECT, DtlsNetworkRule.Mode.NATIVE);
 
 	@Rule
 	public TestNameLoggerRule names = new TestNameLoggerRule();
@@ -171,7 +170,6 @@ public class DTLSConnectorStartStopTest {
 				client.start();
 			} catch (IOException e) {
 			}
-			Thread.sleep(100);
 			clientConnectionStore.dump();
 			serverHelper.serverConnectionStore.dump();
 			LOGGER.info("{} start/stop: {}/{} loops, {} msgs server {}, client {}", testLogTag, loop, loops, pending,
@@ -224,6 +222,5 @@ public class DTLSConnectorStartStopTest {
 			System.gc();
 			Thread.sleep(200);
 		}
-		Thread.sleep(100);
 	}
 }

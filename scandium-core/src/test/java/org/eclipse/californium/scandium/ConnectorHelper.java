@@ -190,6 +190,7 @@ public class ConnectorHelper {
 	 */
 	public void cleanUpServer() {
 		serverConnectionStore.clear();
+		serverRawDataProcessor.clear();
 		serverRawDataChannel.setProcessor(serverRawDataProcessor);
 		server.setAlertHandler(null);
 	}
@@ -327,8 +328,10 @@ public class ConnectorHelper {
 		RawData getLatestInboundMessage();
 
 		EndpointContext getClientEndpointContext();
-		
+
 		boolean quiet(long quietMillis, long timeoutMillis) throws InterruptedException;
+
+		void clear();
 	}
 
 	static class MessageCapturingProcessor implements RawDataProcessor {
@@ -348,8 +351,9 @@ public class ConnectorHelper {
 
 		@Override
 		public EndpointContext getClientEndpointContext() {
-			if (inboundMessage != null) {
-				return inboundMessage.get().getEndpointContext();
+			RawData data = inboundMessage.get();
+			if (data != null) {
+				return data.getEndpointContext();
 			} else {
 				return null;
 			}
@@ -387,6 +391,10 @@ public class ConnectorHelper {
 			} finally {
 				quiet = false;
 			}
+		}
+
+		public void clear() {
+			inboundMessage.set(null);
 		}
 	}
 
