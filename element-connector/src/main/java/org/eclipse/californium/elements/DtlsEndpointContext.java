@@ -32,6 +32,11 @@ public class DtlsEndpointContext extends MapBasedEndpointContext {
 	/**
 	 * The name of the attribute that contains the DTLS session ID.
 	 */
+	public static final String KEY_CONNECTION_ID = "DTLS_CONNECTION_ID";
+
+	/**
+	 * The name of the attribute that contains the DTLS session ID.
+	 */
 	public static final String KEY_SESSION_ID = "DTLS_SESSION_ID";
 	/**
 	 * The name of the attribute that contains the <em>epoch</em> of the
@@ -72,7 +77,26 @@ public class DtlsEndpointContext extends MapBasedEndpointContext {
 	public DtlsEndpointContext(InetSocketAddress peerAddress, Principal peerIdentity,
 			String sessionId, String epoch, String cipher, String timestamp) {
 
-		this(peerAddress, null, peerIdentity, sessionId, epoch, cipher, timestamp);
+		this(peerAddress, null, peerIdentity, sessionId, epoch, cipher, timestamp, "");
+	}
+
+	/**
+	 * Creates a context for DTLS session parameters.
+	 * 
+	 * @param peerAddress peer address of endpoint context
+	 * @param peerIdentity peer identity of endpoint context
+	 * @param sessionId the session's ID.
+	 * @param epoch the session's current read/write epoch.
+	 * @param cipher the cipher suite of the session's current read/write state.
+	 * @param timestamp the timestamp in milliseconds of the last handshake. See
+	 *            {@link System#currentTimeMillis()}.
+	 * @throws NullPointerException if any of the parameters other than
+	 *             peerIdentity are {@code null}.
+	 */
+	public DtlsEndpointContext(InetSocketAddress peerAddress, Principal peerIdentity,
+			String sessionId, String epoch, String cipher, String timestamp, String connectionId) {
+
+		this(peerAddress, null, peerIdentity, sessionId, epoch, cipher, timestamp, connectionId);
 	}
 
 	/**
@@ -92,8 +116,28 @@ public class DtlsEndpointContext extends MapBasedEndpointContext {
 	public DtlsEndpointContext(InetSocketAddress peerAddress, String virtualHost, Principal peerIdentity,
 			String sessionId, String epoch, String cipher, String timestamp) {
 
+		this(peerAddress, virtualHost, peerIdentity, sessionId, epoch, cipher, timestamp, "");
+	}
+
+	/**
+	 * Creates a context for DTLS session parameters.
+	 * 
+	 * @param peerAddress peer address of endpoint context
+	 * @param virtualHost the name of the virtual host at the peer
+	 * @param peerIdentity peer identity of endpoint context
+	 * @param sessionId the session's ID.
+	 * @param epoch the session's current read/write epoch.
+	 * @param cipher the cipher suite of the session's current read/write state.
+	 * @param timestamp the timestamp in milliseconds of the last handshake. See
+	 *            {@link System#currentTimeMillis()}.
+	 * @throws NullPointerException if any of the parameters other than
+	 *             peerIdentity are {@code null}.
+	 */
+	public DtlsEndpointContext(InetSocketAddress peerAddress, String virtualHost, Principal peerIdentity,
+			String sessionId, String epoch, String cipher, String timestamp, String connectionId) {
+
 		super(peerAddress, virtualHost, peerIdentity, KEY_SESSION_ID, sessionId, KEY_CIPHER, cipher, KEY_EPOCH, epoch,
-				KEY_HANDSHAKE_TIMESTAMP, timestamp);
+				KEY_HANDSHAKE_TIMESTAMP, timestamp, KEY_CONNECTION_ID, connectionId);
 	}
 
 	/**
@@ -104,6 +148,16 @@ public class DtlsEndpointContext extends MapBasedEndpointContext {
 	public final String getSessionId() {
 		return get(KEY_SESSION_ID);
 	}
+
+	/**
+	 * Gets the conbnectionId of the DTLS session.
+	 * 
+	 * @return The identifier.
+	 */
+	public final String getConnectionId() {
+		return get(KEY_CONNECTION_ID);
+	}
+
 
 	/**
 	 * Gets the current epoch of the DTLS session.

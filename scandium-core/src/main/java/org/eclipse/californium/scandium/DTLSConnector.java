@@ -1142,7 +1142,7 @@ public class DTLSConnector implements Connector, RecordLayer {
 					if (channel != null) {
 						// create application message.
 						DtlsEndpointContext context = session.getConnectionWriteContext();
-						LOGGER.debug("{}received APPLICATION_DATA for {}", tag, context);
+						LOGGER.info("{}received APPLICATION_DATA for {}", tag, context);
 						RawData receivedApplicationMessage = RawData.inbound(message.getData(), context, false);
 						channel.receiveData(receivedApplicationMessage);
 					}

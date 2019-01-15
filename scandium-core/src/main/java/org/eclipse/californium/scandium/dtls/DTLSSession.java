@@ -376,12 +376,12 @@ public final class DTLSSession {
 
 	public DtlsEndpointContext getConnectionWriteContext() {
 		return new DtlsEndpointContext(peer, virtualHost, peerIdentity, sessionIdentifier.toString(),
-				Integer.toString(writeEpoch), cipherSuite.name(), handshakeTimeTag);
+				Integer.toString(writeEpoch), cipherSuite.name(), handshakeTimeTag, sessionIdentifier != null ? sessionIdentifier.toString(): "");
 	}
 
 	public DtlsEndpointContext getConnectionReadContext() {
 		return new DtlsEndpointContext(peer, virtualHost, peerIdentity, sessionIdentifier.toString(),
-				Integer.toString(readEpoch), cipherSuite.name(), handshakeTimeTag);
+				Integer.toString(readEpoch), cipherSuite.name(), handshakeTimeTag, sessionIdentifier != null ? sessionIdentifier.toString(): "");
 	}
 
 	/**
