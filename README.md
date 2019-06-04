@@ -1,5 +1,7 @@
 ![Californium logo](californium-180.png)
 
+
+
 Eclipse Californium is a Java implementation of [RFC7252 - Constrained Application Protocol](http://tools.ietf.org/html/rfc7252) for IoT Cloud services. Thus, the focus is on scalability and usability instead of resource-efficiency
 like for embedded devices. Yet Californium is also suitable for embedded JVMs.
 
