@@ -190,7 +190,7 @@ public class DtlsEndpointContext extends MapBasedEndpointContext {
 
 	@Override
 	public String toString() {
-		return String.format("DTLS(%s,ID:%s)", getPeerAddressAsString(),
+		return String.format("DTLS(%s,CID:%s,ID:%s)", getPeerAddressAsString(), getConnectionId(),
 				StringUtil.trunc(getSessionId(), ID_TRUNC_LENGTH));
 	}
 }
